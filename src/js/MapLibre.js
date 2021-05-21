@@ -12,6 +12,9 @@ import * as turf from '@turf/turf';
 import "../css/styles.css";
 import 'maplibre-gl/dist/maplibre-gl.css';
 
+import "../css/maplibre-gl-opacity.css";
+import OpacityControl from './maplibre-gl-opacity';
+
 export default function MapLibre() {
     this.pois = {};
     this.geoUpdated = false;
@@ -101,6 +104,7 @@ MapLibre.prototype.init = function init() {
 
     this.map.on('load', (event) => {
         createGeojsonLayer.call(this);
+        addOpa.call(this);
         this.debug && MashupPlatform.widget.log('load', MashupPlatform.log.INFO);
         execEnd.call(this);
     });
@@ -193,6 +197,73 @@ MapLibre.prototype.init = function init() {
     };
     MashupPlatform.mashup.context.registerCallback(update_ui_buttons);
     update_ui_buttons({editing: MashupPlatform.mashup.context.get('editing')});
+}
+
+const addOpa = function addOpa() {
+    // OpenStreetMap
+    this.map.addSource('o_std', {
+        type: 'raster',
+        tiles: [
+            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        ],
+        tileSize: 256,
+    });
+    this.map.addLayer({
+        id: 'o_std',
+        type: 'raster',
+        source: 'o_std',
+        minzoom: 0,
+        maxzoom: 18,
+    });
+
+    // GSI Pale
+    this.map.addSource('t_pale', {
+        type: 'raster',
+        tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
+        tileSize: 256,
+    });
+    this.map.addLayer({
+        id: 't_pale',
+        type: 'raster',
+        source: 't_pale',
+        minzoom: 0,
+        maxzoom: 18,
+    });
+
+    // GSI Ort
+    this.map.addSource('t_ort', {
+        type: 'raster',
+        tiles: ['https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg'],
+        tileSize: 256,
+    });
+    this.map.addLayer({
+        id: 't_ort',
+        type: 'raster',
+        source: 't_ort',
+        minzoom: 0,
+        maxzoom: 18,
+    });
+
+    // BaseLayer
+    const mapBaseLayer = {
+        m_mono: 'MIERUNE Mono',
+        m_color: 'MIERUNE Color',
+    };
+
+    // OverLayer
+    const mapOverLayer = {
+        o_std: 'OpenStreetMap',
+        t_pale: 'GSI Pale',
+        t_ort: 'GSI Ort',
+    };
+
+    let Opacity = new OpacityControl({
+        baseLayers: mapBaseLayer,
+        overLayers: mapOverLayer,
+        opacityControl: true,
+    });
+    this.map.addControl(Opacity, 'top-right');
 }
 
 MapLibre.prototype.addLayer = function addLayer(command_info) {
